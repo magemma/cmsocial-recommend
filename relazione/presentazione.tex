@@ -1,0 +1,306 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{fixltx2e}
+\usepackage{mathrsfs}
+\usepackage{amsfonts}
+\usepackage{makeidx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{relsize}
+\usepackage{array}
+\usepackage{minted}
+\usepackage{fullpage}
+\usepackage{dsfont}
+\usepackage{amssymb}
+\usepackage{eurosym}
+\usepackage{tabto}
+\usepackage{pifont}
+\usepackage{tikz}
+\usepackage{verbatim}
+\usepackage{color}
+\usepackage{comment}
+\usepackage{vwcol}  
+\usepackage{lipsum}
+\usepackage{microtype}
+\usepackage{cleveref}
+\usepackage{frcursive}
+\usepackage[T1]{fontenc}
+\usepackage{bbding}
+\usepackage{pifont}
+\newcommand\finline[3][]{\begin{myfont}[#1]{#2}#3\end{myfont}}%
+\addto\captionsitalian{\renewcommand{\appendixname}{Allegato}}
+\newcommand{\xmark}{\ding{55}}%
+
+
+\hypersetup{
+  pdfborder = {0 0 0}
+}
+
+\newtheoremstyle{thm}% name of the style to be used
+  {3pt}% measure of space to leave above the theorem. E.g.: 3pt
+  {3pt}% measure of space to leave below the theorem. E.g.: 3pt
+  {\itshape}% name of font to use in the body of the theorem
+  {0pt}% measure of space to indent
+  {\bfseries}% name of head font
+  {}% punctuation between head and body
+  { }% space after theorem head; " " = normal interword space
+  {\thmname{#1}\thmnumber{ #2} \thmnote{\bf (#3)}\\}% Manually specify head
+  
+\newtheoremstyle{def}% name of the style to be used
+  {3pt}% measure of space to leave above the theorem. E.g.: 3pt
+  {3pt}% measure of space to leave below the theorem. E.g.: 3pt
+  {\normalfont}% name of font to use in the body of the theorem
+  {0pt}% measure of space to indent
+  {\bfseries}% name of head font
+  {}% punctuation between head and body
+  { }% space after theorem head; " " = normal interword space
+  {\thmname{#1}\thmnumber{ #2} \thmnote{\bf (#3)}\\}% Manually specify head
+  
+%\newcommand\stareq{\stackrel{\mathclap{\normalfont\mbox{*}}}{=}}
+
+\theoremstyle{thm}
+\newtheorem{theorem}{Teorema}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposizione}
+\newtheorem{corollary}[theorem]{Corollario}
+\theoremstyle{def}
+\newtheorem{definition}{Definizione}[section]
+
+
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+\vspace{3cm}
+
+\begin{center}
+\includegraphics[scale=0.3]{Cherubino.jpg}
+\end{center}
+
+\vspace{1cm}
+\Huge
+{\sc Singular Value Decomposition}\\
+for\\
+{\sc Latent Semantic Index}\\
+in\\
+{\sc Information Retrieval}\\
+\Large
+Anno Accademico 2016/2017\\
+
+\vspace{1.5cm}
+
+\Large
+A cura di\\
+{\sc Gemma Martini}\\
+
+\vspace{1.5cm}
+
+\today
+
+\vfill
+
+\end{center}
+\end{titlepage}
+
+%%%%%%%%%%%%%%%%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%%%%%%%%%%%%%%%%%%
+
+\tableofcontents
+\newpage
+
+%TODO: dimensioni S,Sigma,U???
+%TODO: proof????
+%TODO: come mai tolgo i valori piccoli di delta_i???
+%%%%%%%%%%%%%%%%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%%%%%%%%%%%%%%%%%%
+							
+\section{Introduzione}
+Un essere umano è capace di classificare una lista di documenti in base alla loro rilevanza su un certo argomento, definito mediante parole chiave. Questo comportamento può essere replicato dai computer mediante molti algoritmi.
+
+In questo documento viene approfondito l'utilizzo del {\it latent semantic indexing} (in seguito LSI) per assegnare un punteggio ad un insieme di documenti mediante una \textit{query}, assumendo nel lettore la conoscenza della \textit{singular value decomposition} (da qui SVD). Per i lettori meno esperti, nell'appendice \ref{appendice} si trovano le nozioni teoriche necessarie per spiegare LSI.
+
+
+%%%%%%%%%%%%%%%%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%%%%%%%%%%%%%%%%%%
+							
+\section{Latent Semantic Indexing}
+L'obiettivo di questo algoritmo è l'assegnamento di un punteggio ad un insieme di documenti, sulla base della loro pertinenza rispetto ad un insieme di parole, detto \textit{query} (o richiesta).
+
+Più in dettaglio, nella prima parte vengono gettate le fondamenta per introdurre lo \textit{sketch}, che rappresenta sinteticamente le informazioni sui documenti e le parole. Nella seconda parte, in base a questo \textit{sketch}, viene definita la pertinenza di un documento in relazione ad una \textit{query}.
+
+                      %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+
+\subsection{I dati}
+\label{dati}
+\begin{description}
+\item[{\sc Sia}] $D$ un insieme di documenti di cardinalità $d$.
+\item[{\sc Sia}] $P$ l'insieme di tutte le parole che compongono i $d$ documenti, con $|P| = p$.
+\item[{\sc Sia}] $Q$ l'insieme delle parole che formano la \textit{query}, di cardinalità $l$.
+\item[{\sc Sia}] $M \in M(p,d,\mathds{N})$ la matrice delle occorrenze dell'insieme $P$ nell'insieme $D$, in particolare $(a_{ij})$ rappresenta quante volte il termine $p_i$ occorre nel documento $d_j$.
+\item[{\sc Sia}] $B=M^tM \in S(d, \mathds{N})$ la matrice di elementi $(b_{ij})$, che rappresentano il numero di coppie di parole uguali tra il documento $d_i$ ed il documento $d_j$.
+\item[{\sc Sia}] $C=MM^t \in S(p, \mathds{N})$ la matrice di elementi $(c_{i,j})$, che rappresentano il numero di coppie di parole $(p_i, p_j)$ in ogni documento.
+\end{description}
+
+                      %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+
+\subsection{Il modello}
+Con i dati definiti come sopra è possibile decomporre $M$ mediante SVD, ottendendo tre matrici:
+\begin{description}
+\item[{\sc Matrice sinistra dei vettori singolari}] $S \in M(p,r,\mathds{R})$
+\item[{\sc Matrice destra dei vettori singolari}] $U \in M(d,r,\mathds{R})$
+\item[{\sc Matrice diagonale dei valori singolari}] $\Sigma \in D(r,\mathds{R})$
+\end{description}
+tali che $A=S\Sigma U^t$.
+La matrice $\Sigma$ ha, sulla diagonale, elementi decrescenti; di conseguenza gli ultimi elementi possono essere trascurati.
+Si può decidere di ridurre la matrice $\Sigma$ ad una matrice in $M(k, \mathds{R})$, ottenendo $\Sigma_k$, $S_k$ e $U_k$, per calcoli più veloci e per ridurre il rumore dovuto a dati non significativi.
+
+$A_k = S_k \Sigma_k U_k$ è di dimensione $p \times d$, come $A$, e la approssima.
+
+
+                      %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+
+\subsection{I concetti nascosti}
+In modo un po' informale è possibile definire che cos'è un ``concetto nascosto'': come la diagonalizzazione di una matrice descrive, tramite gli autovettori, delle direzioni privilegiate dalle quali guardare la trasformazione, così gli autovettori in $S$ ed in $U$ rappresentano l'informazione sui documenti e  sui dati in modo più comodo.
+
+Lo \textit{sketch} di questo algoritmo risiede nell'interpretazione di $S_k \Sigma_ k$ e $\Sigma_k U_k^t$ come rappresentazione essenziale dei termini e dei documenti in termini di combinazione dei concetti.
+
+Di conseguenza la \textit{query} è un concetto modellato come $q= \frac{\sum\limits_{i=1}^l (S_k \Sigma_k)_i}{l}$.
+
+Concludendo, la pertinenza di un documento è espressa dalla distanza del coseno tra i due vettori $d_i$ e $q$, ossia $\frac{d_i q}{|d_i||q|}$.
+
+
+%%%%%%%%%%%%%%%%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusioni}
+Si conclude che, una volta calcolata la SVD della matrice termini-documenti e scelto il numero di elementi da considerare, è pressochè immediata una gerarchia di documenti ordinati in base alla loro pertinenza rispetto alle richieste.
+
+
+%%%%%%%%%%%%%%%%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+
+%%%%%%%%%%%%%%%%%%%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%%%%%%%%%%%%%%%%%%%%%
+\section{Cenni di SVD}
+\label{appendice}
+Si supponga di avere i dati della sezione \ref{dati}, senza interesse all'interpretazione che è stata data nell'ambito dell'\textit{information retrieval}. Ossia i seguenti
+\begin{itemize}
+\item $M \in M(p,d,\mathds{N})$, con $p > d$
+\item $B=M^tM \in S(p, \mathds{N})$
+\item $C=MM^t \in S(d, \mathds{N})$
+\end{itemize}
+
+Valgono i seguenti lemmi:
+
+\begin{lemma}
+$B$ e $C$ sono simmetriche.
+\end{lemma}
+
+\begin{proof}~
+
+$B^t = (M^tM)^t = M^tM = B$
+
+$C^t = (MM^t)^t = MM^t = C$ 
+\end{proof}
+
+\begin{lemma}
+Se $N = R^t R$ allora $N$ è semi-definita positiva.
+\end{lemma}
+\begin{proof}
+La tesi equivale a $x^tR^tRx \ge 0$, ma $x^tR^tRx = (Rx)^t (Rx) \ge 0$, perchè il prodotto scalare standard è definito positivo. 
+\end{proof}
+
+\vspace{0.5cm}
+
+Valgono inoltre le ipotesi del seguente teorema:
+
+\begin{theorem}[Teorema spettrale]
+Se $P \in S(n, \mathds{R})$ esistono $ x_1, x_2, \cdots, x_n$ autovettori ortonormali di $P$, con autovalori $\lambda_1, \lambda_2, \cdots, \lambda_n$ reali.
+\end{theorem}
+
+
+\begin{corollary}
+Sia $B$ che $C$ hanno autovalori reali non negativi.
+\end{corollary}
+
+\vspace{0.5cm}
+
+Tali autovalori sono dunque quadrati di numeri reali non negativi, ordinati in senso decrescente $\sigma_1^2 \ge \sigma_1^2 \ge \cdots \ge \sigma_d^2$, tali che
+$\sigma_1, \sigma_2, \cdots, \sigma_r \in \mathds{R}^+$ e $\sigma_{r+1}, \cdots, \sigma_d = 0$.
+
+
+Quindi sia $$U = \left(\begin{array}{c|c|c|c} & & & \\ & & & \\ x_1 & x_2 & \cdots& x_r\\ & & & \\ & & & \\ \end{array}\right) \in M(d,r, \mathds{R})$$ la matrice che ha per colonne gli autovettori ortonormali di $B$ relativi ad autovalori positivi.
+
+\vspace{0.5cm}
+Siano $y_i = \frac{1}{\sigma_i} Ax_i$ $\forall i=1, \cdots, r$, allora vale il seguente lemma:
+
+\begin{lemma}
+Gli $y_i$ $\forall i \in \{1, \cdots, r\}$ sono autovettori ortonormali per $C$.
+\end{lemma}
+
+\newpage
+
+\begin{proof}~
+
+\begin{description}
+\item[{\sc Autovettori}] È possibile riscrivere la tesi come $Cy_i = \lambda_i y_i$, ovvero $MM^ty_i = \lambda_i y_i$.
+
+Si ha \[
+	MM^ty_i = MM^t\left(\frac{1}{\sigma_i}Mx_i\right) =
+	M\left(\frac{1}{\sigma_i}M^tMx_i\right) =
+	M \left(\frac{1}{\sigma_i}\sigma_i^2x_i\right) =
+	\sigma_i^2 \frac{1}{\sigma_i} Mx_i =
+	\sigma_i^2 y_i
+\] che corrisponde alla prima parte della tesi scegliendo $\lambda_i = \sigma_i^2$.
+%\begin{multicols}{2}
+%\begin{align*}
+%M^t M x_i = \sigma_i^2 x_i\\
+%M^t \sigma_i y_i = \sigma_i^2 x_i\\
+%M^t y_i = \sigma_i x_i\\
+%M^ty_i = \sigma_i M x_i\\
+%\end{align*}
+%Poichè $\sigma_iMx_i = \sigma^2_i y_i$ sostituendo si ha la tesi.
+%che per definizione di $y_i$ equivale a 
+%Semplificando, si ha che
+%moltiplicando per $M$ a sinistra,
+%\end{multicols}
+\item[{\sc Ortonormali}] Vale la seguente catena di uguaglianze
+\begin{align*}
+y_i^t y_j & = \left( \frac{1}{\sigma_i} A x_i \right) ^t \frac{1}{\sigma_j}A x_j\\
+& = \frac{1}{\sigma_i \sigma_j} x_i^t A^t A x_j\\
+& = \frac{1}{\sigma_i \sigma_j} x_i^t B x_j\\
+& = \frac{1}{\sigma_i \sigma_j} x_i^t \sigma_j^2 x_j\\
+& = \frac{\sigma_j}{\sigma_i} x_i^t x_j
+\end{align*}
+Quindi, poichè $x_i$ e $x_j$ sono ortonormali, si ha la tesi.
+\end{description}
+\end{proof}
+
+\vspace{0.5cm}
+
+Sia $$S = \left(\begin{array}{c|c|c|c} & & & \\ & & & \\ y_1 & y_2 & \cdots& y_r\\ & & & \\ & & & \\ \end{array}\right) \in M(p,r, \mathds{R})$$ la matrice che ha per colonne gli autovettori ortonormali relativi ad autovalori non nulli di $C$ e si consideri la matrice $\Sigma=S^tAU$. Un suo generico elemento $(i, j)$ vale $(S^tAU)_{ij} = y_j^tAx_i = y_j^t \sigma_i y_i = \sigma_i y_j^t y_i$, quindi, poichè gli $y_i$ sono ortonormali, tale matrice è diagonale con elementi $\sigma_1\dots\sigma_r$.
+
+Inoltre, poichè $S$ e $U$ hanno per colonne vettori ortonormali, $SS^t = I_p$ e $UU^t = I_d$, quindi è possibile moltiplicare l'uguaglianza $S^tAU = \Sigma$ a sinistra per $S$ e a destra per $U^t$, ottenendo il seguente teorema:
+
+
+\begin{theorem}
+Sia $M \in M(p,d, \mathds{R})$ e siano $B = M^tM$, $C = MM^t$, $U \in M (d, r, \mathds{R})$ matrice che ha per colonne gli autovettori ortonormali relativi ad autovalori non nulli di $B$ e $S \in M(p,r, \mathds{R})$ matrice che ha per colonne gli autovettori ortonormali relativi ad autovalori non nulli di $C$. Allora la matrice $\Sigma = S^tAU$ è diagonale e ha per elementi le radici quadrate positive degli autovalori della matrice $B$, ossia
+\[
+S^tAU = \Sigma = \begin{pmatrix} \sigma_1 & & & & & 0 \\ & \sigma_2 & & & & \\ & & \ddots & & & \\ & & & & \sigma_{r-1} & \\ 0 & & & & & \sigma_r \\ \end{pmatrix}
+\]
+Inoltre vale che $A = S \Sigma U^t$.
+\end{theorem}
+
+%\begin{proof}
+
+%\end{proof}
+
+%\vspace{0.5cm}
+
+
+\end{document}
